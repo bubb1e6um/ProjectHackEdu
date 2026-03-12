@@ -8,10 +8,12 @@ public class GridMovement : MonoBehaviour
     public float moveSpeed = 300f; 
     public float gridSize = 4f;   
     private bool isMoving = false;
+    public LayerMask obstacleMask;
+    
 
     void Update()
     {
-
+        if (Time.timeScale == 0f) return;
         if (isMoving) return;
         if (Keyboard.current == null) return;
 
@@ -30,6 +32,13 @@ public class GridMovement : MonoBehaviour
         if (inputX != 0 || inputZ != 0)
         {
             Vector3 direction = new Vector3(inputX, 0, inputZ);
+            
+            Vector3 rayOrigin = transform.position + (Vector3.up * (gridSize / 2f));
+            
+            if (Physics.Raycast(rayOrigin, direction, gridSize, obstacleMask))
+            {
+                return; 
+            }
             StartCoroutine(RollToGrid(direction));
         }
     }
@@ -68,7 +77,7 @@ public class GridMovement : MonoBehaviour
 
         transform.position = new Vector3(
             Mathf.Round(targetPosition.x),
-            2,
+            0.5f,
             Mathf.Round(targetPosition.z)
         );
         
