@@ -153,9 +153,12 @@ public class RestartCommand : ICommand
 {
     public string Execute(string[] args)
     {
-        Time.timeScale = 1f; 
-        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
-        return "Restarting system...";
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.RestartLevel();
+            return "Rebooting system...";
+        }
+        return "Error: GameManager not found.";
     }
 }
 
@@ -163,9 +166,25 @@ public class QuitCommand : ICommand
 {
     public string Execute(string[] args)
     {
-        Debug.Log("Game Exited");
-        Application.Quit();
-        return "Shutting down... Connection closed.";
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.QuitGame();
+            return "Terminating connection...";
+        }
+        return "Error: GameManager not found.";
+    }
+}
+
+public class NextCommand : ICommand
+{
+    public string Execute(string[] args)
+    {
+        if (GameManager.Instance != null)
+        {
+            GameManager.Instance.LoadNextLevel();
+            return "Loading next sector...";
+        }
+        return "Error: System routing failed.";
     }
 }
 

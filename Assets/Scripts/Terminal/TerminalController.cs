@@ -203,19 +203,16 @@ public class TerminalController : MonoBehaviour
 
     public void TriggerVictory()
     {
-        if (!isTerminalOpen)
-        {
-            ToggleTerminal();
-        }
+        if (!isTerminalOpen) ToggleTerminal();
 
         outputLog.color = Color.green;
         commandLine.textComponent.color = Color.green;
         currentPathLabel.color = Color.green;
 
         PrintToLog("\n[+] SUCCESS: REQUIRED FILES OBTAINED.");
-        PrintToLog("[+] MISSION COMPLETE. EXFILTRATION SUCCESSFUL.\n");
-        PrintToLog("Available system overrides: restart, quit");
-        
-        Time.timeScale = 0f; // Freeze game
+        PrintToLog("[+] MISSION COMPLETE.\n");
+        PrintToLog("Type 'next' to proceed to the next sector.");
+
+        Time.timeScale = 0f;
     }
 }

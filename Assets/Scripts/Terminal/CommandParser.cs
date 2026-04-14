@@ -22,7 +22,8 @@ public class CommandParser
             { "scan", new ScanCommand(terminal) },
             { "ssh", new SshCommand(terminal) }, 
             { "unlock", new UnlockCommand(terminal) }, 
-            { "exit", new ExitCommand(terminal) }  
+            { "exit", new ExitCommand(terminal) }  ,
+            {"next", new NextCommand() }
         };
     }
 
