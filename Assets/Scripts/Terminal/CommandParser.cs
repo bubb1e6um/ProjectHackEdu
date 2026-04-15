@@ -7,6 +7,18 @@ public class CommandParser
 {
     private readonly Dictionary<string, ICommand> _commands;
 
+    /// <summary>Lightweight constructor for the main-menu interactive prompt.</summary>
+    public CommandParser(System.Action onBoot, System.Action onShutdown, System.Action onSettings)
+    {
+        _commands = new Dictionary<string, ICommand>
+        {
+            { "bootsystem", new BootSystemCommand(onBoot)       },
+            { "shutdown",   new ShutdownCommand(onShutdown)     },
+            { "settings",   new SettingsCommand(onSettings)     },
+            { "help",       new MenuHelpCommand()               },
+        };
+    }
+
     public CommandParser(TerminalController terminal, VirtualFileSystem vfs)
     {
         _commands = new Dictionary<string, ICommand>
@@ -23,7 +35,8 @@ public class CommandParser
             { "ssh", new SshCommand(terminal) }, 
             { "unlock", new UnlockCommand(terminal) }, 
             { "exit", new ExitCommand(terminal) }  ,
-            {"next", new NextCommand() }
+            {"next", new NextCommand() },
+            { "mainmenu", new MainMenuCommand() }
         };
     }
 

@@ -1,0 +1,24 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx unity-mcp-cli:*)",
+      "Bash(node:*)",
+      "mcp__ai-game-developer__scene-list-opened",
+      "mcp__ai-game-developer__assets-find",
+      "mcp__ai-game-developer__gameobject-create",
+      "mcp__ai-game-developer__gameobject-component-add",
+      "mcp__ai-game-developer__assets-refresh",
+      "mcp__ai-game-developer__gameobject-component-modify",
+      "mcp__ai-game-developer__scene-save",
+      "mcp__ai-game-developer__scene-open",
+      "mcp__ai-game-developer__gameobject-find",
+      "mcp__ai-game-developer__gameobject-component-get",
+      "mcp__ai-game-developer__gameobject-component-destroy",
+      "mcp__ai-game-developer__gameobject-modify",
+      "mcp__ai-game-developer__assets-prefab-create"
+    ]
+  },
+  "enabledMcpjsonServers": [
+    "ai-game-developer"
+  ]
+}

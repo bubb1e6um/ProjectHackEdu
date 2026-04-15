@@ -280,9 +280,67 @@ public class ExitCommand : ICommand
             // Optional: quit the game or close terminal
             return "Already on local machine.";
         }
-        
+
         string oldIP = _terminal.ActiveConnection.IP;
         _terminal.ActiveConnection = _terminal.LocalNode;
         return $"Connection to {oldIP} closed.";
+    }
+}
+
+// ── Main-menu commands ────────────────────────────────────────────────────────
+// These are registered in CommandParser via the menu constructor and executed
+// from the interactive prompt in MainMenuController.
+
+public class BootSystemCommand : ICommand
+{
+    readonly System.Action _onBoot;
+    public BootSystemCommand(System.Action onBoot) => _onBoot = onBoot;
+
+    public string Execute(string[] args)
+    {
+        _onBoot?.Invoke();
+        return "// BOOTING SYSTEM...";
+    }
+}
+
+public class ShutdownCommand : ICommand
+{
+    readonly System.Action _onShutdown;
+    public ShutdownCommand(System.Action onShutdown) => _onShutdown = onShutdown;
+
+    public string Execute(string[] args)
+    {
+        _onShutdown?.Invoke();
+        return "// INITIATING SHUTDOWN...";
+    }
+}
+
+public class SettingsCommand : ICommand
+{
+    readonly System.Action _onSettings;
+    public SettingsCommand(System.Action onSettings) => _onSettings = onSettings;
+
+    public string Execute(string[] args)
+    {
+        _onSettings?.Invoke();
+        return string.Empty;
+    }
+}
+
+public class MenuHelpCommand : ICommand
+{
+    public string Execute(string[] args)
+    {
+        return "// COMMANDS: bootsystem | shutdown | settings | help";
+    }
+}
+
+public class MainMenuCommand : ICommand
+{
+    public string Execute(string[] args)
+    {
+        Time.timeScale = 1f;
+        SceneManager.LoadScene(0);
+        return "// RETURNING TO MAIN TERMINAL...";
     }
 }
