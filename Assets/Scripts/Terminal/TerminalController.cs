@@ -1,7 +1,8 @@
-using UnityEngine;
-using TMPro; 
-using UnityEngine.InputSystem;
+using System.Collections;
 using System.Collections.Generic;
+using UnityEngine;
+using UnityEngine.InputSystem;
+using TMPro;
 
 public class TerminalController : MonoBehaviour
 {
@@ -12,8 +13,8 @@ public class TerminalController : MonoBehaviour
     private CommandParser _parser;
 
     [Header("UI Ссылки")]
-    public GameObject terminalPanel;      
-    public TMP_InputField commandLine;    
+    public GameObject terminalPanel;
+    public TMP_InputField commandLine;
     public TextMeshProUGUI outputLog;
     public TextMeshProUGUI currentPathLabel;
     public TextMeshProUGUI promptLabel;
@@ -21,9 +22,13 @@ public class TerminalController : MonoBehaviour
     public NetworkGraph GlobalNetwork { get; private set; }
     public NetworkNode LocalNode { get; private set; }
     public NetworkNode ActiveConnection { get; set; }
-    
 
     private bool isTerminalOpen = false;
+    private bool _isAnimating   = false;
+    private CanvasGroup _canvasGroup;
+
+    // Animation settings
+    private const float AnimDuration = 0.12f;
 
  
     void Awake()
@@ -41,9 +46,14 @@ public class TerminalController : MonoBehaviour
 
     void Start()
     {
+        // Get or add CanvasGroup for fade animation
+        _canvasGroup = terminalPanel.GetComponent<CanvasGroup>();
+        if (_canvasGroup == null)
+            _canvasGroup = terminalPanel.AddComponent<CanvasGroup>();
+
         terminalPanel.SetActive(false);
         outputLog.text = "Root session started...\n\n";
-        
+
         commandLine.onSubmit.AddListener(OnCommandSubmitted);
         UpdatePromptDisplay();
     }
@@ -90,33 +100,84 @@ public class TerminalController : MonoBehaviour
 
     public void ToggleTerminal()
     {
+        if (_isAnimating) return;
+
         isTerminalOpen = !isTerminalOpen;
-        terminalPanel.SetActive(isTerminalOpen);
 
         if (isTerminalOpen)
         {
-            Time.timeScale = 0f; 
-        
-            outputLog.text = "Root session started...\n\n";
-            commandLine.text = ""; 
-            _historyIndex = -1;  
-            
-            commandLine.ActivateInputField();
+            Time.timeScale = 0f;
+            outputLog.text   = "Root session started...\n\n";
+            commandLine.text = "";
+            _historyIndex    = -1;
+            StartCoroutine(AnimateOpen());
         }
         else
         {
-
-            Time.timeScale = 1f; 
-
- 
             if (ActiveConnection != null && LocalNode != null && ActiveConnection.IP != "127.0.0.1")
             {
-                ActiveConnection = LocalNode; 
-                UpdatePromptDisplay();        
+                ActiveConnection = LocalNode;
+                UpdatePromptDisplay();
             }
-            outputLog.text = "";
+            outputLog.text   = "";
             commandLine.text = "";
+            StartCoroutine(AnimateClose());
         }
+    }
+
+    private IEnumerator AnimateOpen()
+    {
+        _isAnimating = true;
+        terminalPanel.SetActive(true);
+
+        var rt = terminalPanel.GetComponent<RectTransform>();
+        _canvasGroup.alpha           = 0f;
+        _canvasGroup.interactable    = false;
+        _canvasGroup.blocksRaycasts  = false;
+        rt.localScale                = new Vector3(1f, 0.04f, 1f);
+
+        for (float t = 0f; t < AnimDuration; t += Time.unscaledDeltaTime)
+        {
+            float p = t / AnimDuration;
+            // Ease-out cubic
+            float e = 1f - Mathf.Pow(1f - p, 3f);
+            _canvasGroup.alpha = e;
+            rt.localScale      = new Vector3(1f, Mathf.Lerp(0.04f, 1f, e), 1f);
+            yield return null;
+        }
+
+        _canvasGroup.alpha          = 1f;
+        rt.localScale               = Vector3.one;
+        _canvasGroup.interactable   = true;
+        _canvasGroup.blocksRaycasts = true;
+        _isAnimating                = false;
+
+        commandLine.ActivateInputField();
+    }
+
+    private IEnumerator AnimateClose()
+    {
+        _isAnimating = true;
+        _canvasGroup.interactable   = false;
+        _canvasGroup.blocksRaycasts = false;
+
+        var rt      = terminalPanel.GetComponent<RectTransform>();
+        float start = rt.localScale.y;
+
+        for (float t = 0f; t < AnimDuration; t += Time.unscaledDeltaTime)
+        {
+            float p = t / AnimDuration;
+            // Ease-in quad
+            float e = p * p;
+            _canvasGroup.alpha = 1f - e;
+            rt.localScale      = new Vector3(1f, Mathf.Lerp(start, 0.04f, e), 1f);
+            yield return null;
+        }
+
+        terminalPanel.SetActive(false);
+        rt.localScale  = Vector3.one;
+        _isAnimating   = false;
+        Time.timeScale = 1f;
     }
 
     private void OnCommandSubmitted(string input)

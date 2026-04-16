@@ -15,6 +15,9 @@ public class EnemyController : MonoBehaviour
 
     private IEnemyState _currentState;
 
+    /// <summary>Read by EnemyFOV to drive visual state.</summary>
+    public bool IsAlert => _currentState is AlertState;
+
 void Start()
     {
         ChangeState(new PatrolState());
