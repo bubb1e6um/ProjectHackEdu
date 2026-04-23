@@ -5,6 +5,10 @@ public class EnemyController : MonoBehaviour
     public float moveSpeed = 5f;
     public Transform[] waypoints;
     public float visionDistance = 12f; // 3 grid cells (3 * 4)
+    [Header("Detection")]
+    [Tooltip("Seconds the drone must see the player before triggering game over")]
+    [Range(0.5f, 15f)]
+    public float detectionTime = 2f;
     public LayerMask obstacleMask;
     public LayerMask playerMask;
     public Transform eyes;
@@ -15,8 +19,8 @@ public class EnemyController : MonoBehaviour
 
     private IEnemyState _currentState;
 
-    /// <summary>Read by EnemyFOV to drive visual state.</summary>
-    public bool IsAlert => _currentState is AlertState;
+    public bool IsAlert     => _currentState is AlertState;
+    public bool CanSeePlayer { get; private set; }
 
 void Start()
     {
@@ -70,19 +74,11 @@ void Start()
 
     private void CheckLineOfSight()
     {
-        Vector3 origin = eyes != null ? eyes.position : transform.position; 
-        Vector3 direction = transform.forward;
-
-        if (Physics.Raycast(origin, direction, out RaycastHit hit, visionDistance, playerMask | obstacleMask))
-        {
-            if (((1 << hit.collider.gameObject.layer) & playerMask) != 0)
-            {
-                if (!(_currentState is AlertState))
-                {
-                    ChangeState(new AlertState());
-                }
-            }
-        }
+        Vector3 origin = eyes != null ? eyes.position : transform.position;
+        if (Physics.Raycast(origin, transform.forward, out RaycastHit hit, visionDistance, playerMask | obstacleMask))
+            CanSeePlayer = ((1 << hit.collider.gameObject.layer) & playerMask) != 0;
+        else
+            CanSeePlayer = false;
     }
     
     private void OnDrawGizmos()

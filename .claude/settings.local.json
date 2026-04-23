@@ -19,7 +19,21 @@
       "mcp__ai-game-developer__scene-get-data",
       "mcp__ai-game-developer__editor-application-set-state",
       "mcp__ai-game-developer__screenshot-game-view",
-      "mcp__ai-game-developer__script-execute"
+      "mcp__ai-game-developer__script-execute",
+      "mcp__ai-game-developer__screenshot-scene-view",
+      "mcp__ai-game-developer__gameobject-component-list-all",
+      "mcp__ai-game-developer__object-get-data",
+      "mcp__ai-game-developer__assets-shader-list-all",
+      "mcp__ai-game-developer__assets-shader-get-data",
+      "mcp__ai-game-developer__assets-get-data",
+      "mcp__ai-game-developer__script-read",
+      "mcp__ai-game-developer__script-update-or-create",
+      "mcp__ai-game-developer__editor-selection-set",
+      "mcp__ai-game-developer__console-get-logs",
+      "Bash(python -c \"import sys,json; logs=json.load\\(sys.stdin\\)['result']; errors=[l for l in logs if l.get\\('type'\\) in \\('Error','Exception'\\) or 'shader' in str\\(l\\).lower\\(\\) or 'VirusIridescent' in str\\(l\\) or 'dodec' in str\\(l\\).lower\\(\\)]; [print\\(l['type'],':',l.get\\('message',''\\)[:200]\\) for l in errors[-20:]]\")",
+      "Bash(python -c ' *)",
+      "mcp__ai-game-developer__editor-application-get-state",
+      "mcp__ai-game-developer__screenshot-camera"
     ]
   },
   "enabledMcpjsonServers": [

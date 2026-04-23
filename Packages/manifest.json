@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.ivanmurzak.unity.mcp": "0.66.0",
     "com.unity.ai.navigation": "2.0.11",
     "com.unity.collab-proxy": "2.11.4",
     "com.unity.ide.rider": "3.0.39",
@@ -48,7 +49,8 @@
     "com.unity.modules.vr": "1.0.0",
     "com.unity.modules.wind": "1.0.0",
     "com.unity.modules.xr": "1.0.0",
-    "com.ivanmurzak.unity.mcp": "0.63.4"
+    "com.ivanmurzak.unity.mcp.probuilder": "1.0.64",
+    "com.ivanmurzak.unity.mcp.particlesystem": "1.0.52"
   },
   "scopedRegistries": [
     {

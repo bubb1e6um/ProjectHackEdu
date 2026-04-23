@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.UI;
 using UnityEngine.InputSystem;
 using TMPro;
 
@@ -26,6 +27,20 @@ public class TerminalController : MonoBehaviour
     private bool isTerminalOpen = false;
     private bool _isAnimating   = false;
     private CanvasGroup _canvasGroup;
+
+    // Death overlay (created programmatically)
+    private Image _deathOverlay;
+    private Image _chromaticOverlay;
+
+    private bool _isGameOver = false;
+    private bool _isVictory  = false;
+
+    [Header("Typewriter")]
+    [Tooltip("Символов в секунду (0 = мгновенно)")]
+    public float charsPerSecond = 45f;
+
+    private readonly Queue<string> _printQueue    = new Queue<string>();
+    private          Coroutine     _typingRoutine;
 
     // Animation settings
     private const float AnimDuration = 0.12f;
@@ -56,6 +71,7 @@ public class TerminalController : MonoBehaviour
 
         commandLine.onSubmit.AddListener(OnCommandSubmitted);
         UpdatePromptDisplay();
+        BuildDeathOverlay();
     }
 
     void Update()
@@ -101,13 +117,15 @@ public class TerminalController : MonoBehaviour
     public void ToggleTerminal()
     {
         if (_isAnimating) return;
+        if ((_isGameOver || _isVictory) && isTerminalOpen) return; // блокируем закрытие после конца игры
 
         isTerminalOpen = !isTerminalOpen;
 
         if (isTerminalOpen)
         {
             Time.timeScale = 0f;
-            outputLog.text   = "Root session started...\n\n";
+            if (!_isGameOver && !_isVictory)
+                outputLog.text = "Root session started...\n\n";
             commandLine.text = "";
             _historyIndex    = -1;
             StartCoroutine(AnimateOpen());
@@ -184,6 +202,19 @@ public class TerminalController : MonoBehaviour
     {
         if (string.IsNullOrWhiteSpace(input)) { commandLine.ActivateInputField(); return; }
 
+        // После смерти — только restart и quit
+        if (_isGameOver)
+        {
+            string cmd = input.Trim().ToLowerInvariant().Split(' ')[0];
+            if (cmd != "restart" && cmd != "quit")
+            {
+                PrintToLog("<color=#FF2222>[LOCKDOWN] Доступны только команды: restart, quit</color>");
+                commandLine.text = "";
+                commandLine.ActivateInputField();
+                return;
+            }
+        }
+
         if (_commandHistory.Count == 0 || _commandHistory[_commandHistory.Count - 1] != input)
         {
             _commandHistory.Add(input);
@@ -206,21 +237,63 @@ public class TerminalController : MonoBehaviour
         commandLine.ActivateInputField();
     }
 
-    public void PrintToLog(string message)
+    public void PrintToLog(string message, bool typewriter = false)
     {
-        outputLog.text += message + "\n";
-        
-        if (outputLog.text.Length > 1500)
+        if (!typewriter || charsPerSecond <= 0f)
         {
-            outputLog.text = outputLog.text.Substring(outputLog.text.Length - 1000);
+            outputLog.text += message + "\n";
+            if (outputLog.text.Length > 1500)
+                outputLog.text = outputLog.text.Substring(outputLog.text.Length - 1000);
+            return;
         }
+
+        _printQueue.Enqueue(message + "\n");
+        if (_typingRoutine == null)
+            _typingRoutine = StartCoroutine(TypewriterRoutine());
     }
+
+    private IEnumerator TypewriterRoutine()
+    {
+        float elapsed = 0f;
+
+        while (_printQueue.Count > 0)
+        {
+            string msg      = _printQueue.Dequeue();
+            float  interval = 1f / charsPerSecond;
+
+            foreach (char c in msg)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                while (elapsed < interval)
+                {
+                    yield return null;
+                    elapsed += Time.unscaledDeltaTime;
+                }
+                elapsed -= interval;
+
+                outputLog.text += c;
+                if (outputLog.text.Length > 1500)
+                    outputLog.text = outputLog.text.Substring(outputLog.text.Length - 1000);
+            }
+        }
+
+        _typingRoutine = null;
+    }
+
     public void ClearLog()
     {
+        _printQueue.Clear();
+        if (_typingRoutine != null)
+        {
+            StopCoroutine(_typingRoutine);
+            _typingRoutine = null;
+        }
         outputLog.text = string.Empty;
     }
     private void UpdatePromptDisplay()
     {
+        if (_isGameOver) return;
+
         string path = "";
         VFSNode current = _vfs.CurrentDirectory;
 
@@ -246,34 +319,163 @@ public class TerminalController : MonoBehaviour
     }
     public void TriggerGameOver()
     {
-        if (!isTerminalOpen)
+        StartCoroutine(GameOverSequence());
+    }
+
+    private IEnumerator GameOverSequence()
+    {
+        // Phase 1: три быстрых глитч-вспышки
+        for (int i = 0; i < 3; i++)
         {
-            ToggleTerminal();
+            yield return StartCoroutine(FadeOverlay(0f, 0.97f, 0.04f));
+            yield return StartCoroutine(FadeOverlay(0.97f, 0f, 0.04f));
+            yield return new WaitForSecondsRealtime(0.02f);
         }
 
-        outputLog.color = Color.red;
-        commandLine.textComponent.color = Color.red;
-        currentPathLabel.color = Color.red;
-        promptLabel.color = Color.red;
+        // Phase 2: устойчивая красная вспышка
+        yield return StartCoroutine(FadeOverlay(0f, 0.95f, 0.10f));
 
+        // Phase 3: зафиксировать состояние смерти и открыть терминал
+        _isGameOver = true;
+        if (!isTerminalOpen)
+            ToggleTerminal();
 
-        PrintToLog("\n[!] CRITICAL ALERT: UNAUTHORIZED ACCESS DETECTED.");
-        PrintToLog("[!] SYSTEM LOCKDOWN INITIATED. YOU HAVE BEEN CAUGHT.\n");
-        PrintToLog("Available system overrides: restart, quit");
+        // Phase 4: оверлей медленно гаснет пока открывается терминал
+        StartCoroutine(FadeOverlay(0.65f, 0f, 0.55f));
+
+        // Phase 5: дождаться окончания анимации терминала
+        yield return new WaitForSecondsRealtime(AnimDuration + 0.05f);
+
+        // Phase 6: покрасить все элементы терминала в красный
+        ApplyDeathTheme();
+
+        // Phase 7: напечатать сообщения через typewriter
+        PrintToLog("\n[!] CRITICAL ALERT: UNAUTHORIZED ACCESS DETECTED.", true);
+        PrintToLog("[!] SYSTEM LOCKDOWN INITIATED. YOU HAVE BEEN CAUGHT.\n", true);
+        PrintToLog("Available system overrides: restart, quit", true);
+    }
+
+    private IEnumerator FadeOverlay(float fromAlpha, float toAlpha, float duration)
+    {
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            float a = Mathf.Lerp(fromAlpha, toAlpha, Mathf.Clamp01(t / duration));
+            SetOverlayAlpha(a);
+            yield return null;
+        }
+        SetOverlayAlpha(toAlpha);
+    }
+
+    private void SetOverlayAlpha(float alpha)
+    {
+        // Тёмно-красный: низкий R + высокая alpha = кровавый/чёрно-красный
+        if (_deathOverlay     != null) _deathOverlay.color     = new Color(0.50f, 0f, 0f, alpha);
+        if (_chromaticOverlay != null) _chromaticOverlay.color = new Color(0f,    0f, 0f, 0f);
+    }
+
+    private void ApplyDeathTheme()
+    {
+        // Все TMP-тексты в иерархии панели → оттенок красного по исходной яркости
+        foreach (var tmp in terminalPanel.GetComponentsInChildren<TextMeshProUGUI>(true))
+        {
+            float lum = tmp.color.r * 0.299f + tmp.color.g * 0.587f + tmp.color.b * 0.114f;
+            tmp.color = new Color(Mathf.Lerp(0.55f, 1.00f, lum), 0f, 0f, tmp.color.a);
+        }
+
+        // Все Image в иерархии (фон, рамки, скроллбар, разделители)
+        foreach (var img in terminalPanel.GetComponentsInChildren<Image>(true))
+        {
+            float lum = img.color.r * 0.299f + img.color.g * 0.587f + img.color.b * 0.114f;
+            img.color = new Color(Mathf.Lerp(0.08f, 0.72f, lum), 0f, 0f, img.color.a);
+        }
+
+        // Курсор и выделение InputField
+        commandLine.caretColor     = new Color(1f,    0.20f, 0.10f, 1f);
+        commandLine.selectionColor = new Color(0.55f, 0f,    0f,    0.45f);
+    }
+
+    private void BuildDeathOverlay()
+    {
+        var canvasGO        = new GameObject("[DeathOverlay]");
+        canvasGO.transform.SetParent(transform);
+        var canvas          = canvasGO.AddComponent<Canvas>();
+        canvas.renderMode   = RenderMode.ScreenSpaceOverlay;
+        canvas.sortingOrder = 999;
+
+        _deathOverlay     = CreateOverlayImage(canvasGO, "Red",  new Color(1f,  0f,  0f,  0f));
+        _chromaticOverlay = CreateOverlayImage(canvasGO, "Cyan", new Color(0f, 0.8f, 1f,  0f));
+
+        // Небольшой сдвиг для эффекта хроматической аберрации
+        _chromaticOverlay.GetComponent<RectTransform>().anchoredPosition = new Vector2(5f, -3f);
+    }
+
+    private static Image CreateOverlayImage(GameObject parent, string name, Color color)
+    {
+        var go  = new GameObject(name);
+        go.transform.SetParent(parent.transform, false);
+        var img = go.AddComponent<Image>();
+        img.color = color;
+        var rt  = img.GetComponent<RectTransform>();
+        rt.anchorMin = Vector2.zero;
+        rt.anchorMax = Vector2.one;
+        rt.offsetMin = Vector2.zero;
+        rt.offsetMax = Vector2.zero;
+        return img;
     }
 
     public void TriggerVictory()
     {
+        StartCoroutine(VictorySequence());
+    }
+
+    private IEnumerator VictorySequence()
+    {
+        // Phase 1: две мягкие зелёные вспышки
+        for (int i = 0; i < 2; i++)
+        {
+            yield return StartCoroutine(FadeOverlayColor(0f, 0.85f, 0.18f, new Color(0f, 0.8f, 0.3f)));
+            yield return StartCoroutine(FadeOverlayColor(0.85f, 0f, 0.18f, new Color(0f, 0.8f, 0.3f)));
+            yield return new WaitForSecondsRealtime(0.08f);
+        }
+
+        // Phase 2: устойчивое зелёное свечение
+        yield return StartCoroutine(FadeOverlayColor(0f, 0.75f, 0.35f, new Color(0f, 0.8f, 0.3f)));
+
+        // Phase 3: зафиксировать победу и открыть терминал
+        _isVictory = true;
         if (!isTerminalOpen) ToggleTerminal();
 
+        // Phase 4: оверлей медленно гаснет пока открывается терминал
+        StartCoroutine(FadeOverlayColor(0.55f, 0f, 0.7f, new Color(0f, 0.8f, 0.3f)));
+
+        // Phase 5: дождаться окончания анимации терминала
+        yield return new WaitForSecondsRealtime(AnimDuration + 0.05f);
+
+        // Phase 6: покрасить терминал в зелёный
         outputLog.color = Color.green;
         commandLine.textComponent.color = Color.green;
         currentPathLabel.color = Color.green;
 
-        PrintToLog("\n[+] SUCCESS: REQUIRED FILES OBTAINED.");
-        PrintToLog("[+] MISSION COMPLETE.\n");
-        PrintToLog("Type 'next' to proceed to the next sector.");
+        // Phase 7: напечатать сообщения через typewriter
+        PrintToLog("\n[+] SUCCESS: REQUIRED FILES OBTAINED.", true);
+        PrintToLog("[+] MISSION COMPLETE.\n", true);
+        PrintToLog("Type 'next' to proceed to the next sector.", true);
+    }
 
-        Time.timeScale = 0f;
+    private IEnumerator FadeOverlayColor(float fromAlpha, float toAlpha, float duration, Color rgb)
+    {
+        float t = 0f;
+        while (t < duration)
+        {
+            t += Time.unscaledDeltaTime;
+            float a = Mathf.Lerp(fromAlpha, toAlpha, Mathf.Clamp01(t / duration));
+            if (_deathOverlay != null)
+                _deathOverlay.color = new Color(rgb.r, rgb.g, rgb.b, a);
+            yield return null;
+        }
+        if (_deathOverlay != null)
+            _deathOverlay.color = new Color(rgb.r, rgb.g, rgb.b, toAlpha);
     }
 }
