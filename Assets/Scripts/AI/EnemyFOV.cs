@@ -35,7 +35,6 @@ public class EnemyFOV : MonoBehaviour
     [Range(0, 8)]      public int   RadialCount     = 4;
     [Range(0f, 0.15f)] public float BracketFraction = 0.07f;
 
-    // ── Private ───────────────────────────────────────────────────────────────
     EnemyController _enemy;
     GameObject      _root;
 
@@ -58,7 +57,6 @@ public class EnemyFOV : MonoBehaviour
 
     float[] _hitDists;   // wall-clipped distance per ray
 
-    // =========================================================================
     void Awake()
     {
         _enemy    = GetComponent<EnemyController>();
@@ -77,7 +75,6 @@ public class EnemyFOV : MonoBehaviour
         BuildLight();
     }
 
-    // =========================================================================
     void Update()
     {
         bool  alert = _enemy != null && _enemy.IsAlert;
@@ -86,7 +83,7 @@ public class EnemyFOV : MonoBehaviour
 
         _root.transform.localPosition = new Vector3(0f, -transform.position.y + 0.55f, 0f);
 
-        // CRT flicker
+        // CRT flicker — randomised interval so it doesn't look periodic
         _flickerTime += dt;
         if (_flickerTime >= _flickerNext)
         {
@@ -96,14 +93,12 @@ public class EnemyFOV : MonoBehaviour
         }
         float flicker = _flickerVal;
 
-        // Raycast → rebuild geometry
         CastFOVRays();
         RebuildFillMesh();
         RebuildBoundary();
         RebuildRings();
         RebuildPulse(dt, alert);
 
-        // Target colours
         Color tFill  = alert ? AlertFill  : PatrolFill;
         Color tEdge  = alert ? AlertEdge  : PatrolEdge;
         Color tRing  = alert ? AlertRing  : PatrolRing;
@@ -125,7 +120,6 @@ public class EnemyFOV : MonoBehaviour
         if (_brackets != null)
         { Color bc = tEdge; bc.a *= flicker; foreach (var b in _brackets) SetLine(b, bc, edgeW * 1.4f); }
 
-        // Light
         if (alert)
         {
             _blinkT += dt * 10f;
@@ -143,9 +137,6 @@ public class EnemyFOV : MonoBehaviour
         }
     }
 
-    // =========================================================================
-    //  Raycasting
-    // =========================================================================
     void CastFOVRays()
     {
         float   vd     = _enemy.visionDistance;
@@ -167,9 +158,6 @@ public class EnemyFOV : MonoBehaviour
         }
     }
 
-    // =========================================================================
-    //  Dynamic geometry rebuild (every frame)
-    // =========================================================================
     void RebuildFillMesh()
     {
         float h    = ViewAngle * 0.5f;
@@ -247,9 +235,6 @@ public class EnemyFOV : MonoBehaviour
         SetLine(_pulse, pc, Mathf.Lerp(0.13f, 0.04f, _pulseT));
     }
 
-    // =========================================================================
-    //  Build helpers (initial build in Awake)
-    // =========================================================================
     void BuildFill()
     {
         var go        = Child("Fill");
@@ -360,9 +345,6 @@ public class EnemyFOV : MonoBehaviour
         _light.shadows      = LightShadows.None;
     }
 
-    // =========================================================================
-    //  Geometry helpers
-    // =========================================================================
     void BuildArc(LineRenderer lr, float dist)
     {
         float h    = ViewAngle * 0.5f;
@@ -375,9 +357,6 @@ public class EnemyFOV : MonoBehaviour
     static Vector3 Dir(float radians) =>
         new Vector3(Mathf.Sin(radians), 0f, Mathf.Cos(radians));
 
-    // =========================================================================
-    //  LineRenderer helpers
-    // =========================================================================
     LineRenderer Line(GameObject parent, string n, int pts, float w)
     {
         var go = new GameObject(n);
@@ -410,9 +389,6 @@ public class EnemyFOV : MonoBehaviour
         lr.widthMultiplier = w;
     }
 
-    // =========================================================================
-    //  Material helper
-    // =========================================================================
     static Material TransparentMat(bool doubleSided)
     {
         var shader = Shader.Find("Universal Render Pipeline/Unlit")

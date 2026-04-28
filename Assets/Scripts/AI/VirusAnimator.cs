@@ -1,9 +1,5 @@
 using UnityEngine;
 
-/// <summary>
-/// Visual animator for the dodecahedron enemy body.
-/// Handles: idle Y-bob and physically-based rolling with smooth direction transitions.
-/// </summary>
 public class VirusAnimator : MonoBehaviour
 {
     [Header("Visual Target")]
@@ -33,12 +29,10 @@ public class VirusAnimator : MonoBehaviour
 
     void Update()
     {
-        // ── Vertical bob ──────────────────────────────────────────────
         Vector3 localPos = transform.localPosition;
         localPos.y       = _startLocalY + Mathf.Sin(Time.time * bobFrequency) * bobAmplitude;
         transform.localPosition = localPos;
 
-        // ── Rolling with smooth direction transition ───────────────────
         if (dodecVisual != null)
         {
             Vector3 worldPos    = transform.position;
@@ -46,8 +40,8 @@ public class VirusAnimator : MonoBehaviour
                 worldPos.x - _lastWorldPos.x, 0f,
                 worldPos.z - _lastWorldPos.z);
 
-            // Blend the velocity toward the raw delta each frame.
-            // On direction change the blend takes several frames → smooth roll-axis sweep.
+            // Exponential blend toward raw delta — on direction change this takes several frames,
+            // which sweeps the roll axis smoothly instead of snapping.
             _smoothVelocityXZ = Vector3.Lerp(
                 _smoothVelocityXZ,
                 rawDeltaXZ,
@@ -56,9 +50,8 @@ public class VirusAnimator : MonoBehaviour
             float smoothSpeed = _smoothVelocityXZ.magnitude;
             if (smoothSpeed > 0.0001f)
             {
-                // Use the smoothed direction for the roll axis so it sweeps gradually.
+                // Smoothed direction → gradual roll-axis sweep; raw distance → physically correct angle
                 Vector3 rollAxis  = Vector3.Cross(Vector3.up, _smoothVelocityXZ.normalized);
-                // Use raw distance for the roll angle so the rotation stays physically consistent.
                 float   rollAngle = rawDeltaXZ.magnitude / rollRadius * Mathf.Rad2Deg;
                 dodecVisual.Rotate(rollAxis, rollAngle, Space.World);
             }

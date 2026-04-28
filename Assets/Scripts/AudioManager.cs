@@ -1,11 +1,8 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Singleton — persists between scenes. Manages background music and SFX volume.
-/// LevelTracks[0] plays on build index 1, LevelTracks[1] on build index 2, etc.
-/// Place one instance in each level scene; duplicates are destroyed on load.
-/// </summary>
+// Singleton — persists between scenes, manages music and SFX volume.
+// LevelTracks[0] plays on build index 1, [1] on index 2, etc. (wraps around).
 public class AudioManager : MonoBehaviour
 {
     public static AudioManager Instance { get; private set; }
@@ -19,7 +16,6 @@ public class AudioManager : MonoBehaviour
 
     AudioSource _musicSource;
 
-    // ─────────────────────────────────────────────────────────────────────────
     void Awake()
     {
         if (Instance == null)
@@ -48,7 +44,6 @@ public class AudioManager : MonoBehaviour
             SceneManager.sceneLoaded -= OnSceneLoaded;
     }
 
-    // ─────────────────────────────────────────────────────────────────────────
     void OnSceneLoaded(Scene scene, LoadSceneMode mode)
     {
         PlayTrackForScene(scene.buildIndex);
@@ -58,7 +53,7 @@ public class AudioManager : MonoBehaviour
     {
         if (LevelTracks == null || LevelTracks.Length == 0) return;
 
-        // Index 0 = MainMenu: stop music there
+        // Index 0 is the main menu — no music there
         if (buildIndex == 0)
         {
             _musicSource.Stop();
@@ -75,10 +70,6 @@ public class AudioManager : MonoBehaviour
         _musicSource.clip = clip;
         _musicSource.Play();
     }
-
-    // ─────────────────────────────────────────────────────────────────────────
-    //  Volume API — called from MainMenuController and PauseMenuController
-    // ─────────────────────────────────────────────────────────────────────────
 
     public void SetMusicVolume(float v)
     {

@@ -1,5 +1,5 @@
 ﻿using UnityEngine;
-using UnityEngine.SceneManagement; // Обязательно для работы со сценами
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {

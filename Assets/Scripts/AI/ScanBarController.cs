@@ -18,8 +18,6 @@ public class ScanBarController : MonoBehaviour
     float        _flickerT;
     float        _progress;
 
-    // ── Factory ──────────────────────────────────────────────────────────────
-
     public static ScanBarController Create(Transform parent)
     {
         var go = new GameObject("[ScanBar]");
@@ -27,8 +25,6 @@ public class ScanBarController : MonoBehaviour
         go.transform.localPosition = new Vector3(0f, 2.2f, 0f);
         return go.AddComponent<ScanBarController>();
     }
-
-    // ── Unity ────────────────────────────────────────────────────────────────
 
     void Awake()
     {
@@ -50,8 +46,6 @@ public class ScanBarController : MonoBehaviour
         _fillMat.color = new Color(ColFill.r, ColFill.g, ColFill.b, ColFill.a * f);
     }
 
-    // ── Public API ───────────────────────────────────────────────────────────
-
     public void SetProgress(float t)
     {
         _progress = Mathf.Clamp01(t);
@@ -59,8 +53,6 @@ public class ScanBarController : MonoBehaviour
         if (_label != null)
             _label.text = $"[ SCANNING... {Mathf.RoundToInt(_progress * 100):D3}% ]";
     }
-
-    // ── Build ────────────────────────────────────────────────────────────────
 
     void Build()
     {
@@ -161,8 +153,6 @@ public class ScanBarController : MonoBehaviour
         _label.anchor    = TextAnchor.MiddleCenter;
         _label.alignment = TextAlignment.Center;
     }
-
-    // ── Helpers ──────────────────────────────────────────────────────────────
 
     void MakeLine(string name, Vector3 a, Vector3 b, float width)
     {

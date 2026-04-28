@@ -54,7 +54,6 @@ public class LsCommand : ICommand
         StringBuilder sb = new StringBuilder();
         foreach (var child in children)
         {
-            // Формируем красивую строку
             string sizeStr = child.GetSize().ToString().PadLeft(4);
             string line = $"{child.Permissions}  {child.Owner}  {sizeStr}  {child.Date}  ";
             
@@ -236,7 +235,6 @@ public class SshCommand : ICommand
         
         string targetIP = args[0];
         
-        // Find IP in the global network
         NetworkNode targetNode = _terminal.GlobalNetwork.GetNode(targetIP);
         
         if (targetNode == null || targetIP == "127.0.0.1") 
@@ -260,7 +258,6 @@ public class UnlockCommand : ICommand
         if (!_terminal.ActiveConnection.IsLocked)
             return "System is already unlocked.";
 
-        // Hack the node and invoke the 3D event
         _terminal.ActiveConnection.IsLocked = false;
         _terminal.ActiveConnection.OnUnlock?.Invoke();
         
@@ -277,7 +274,6 @@ public class ExitCommand : ICommand
     {
         if (_terminal.ActiveConnection.IP == "127.0.0.1")
         {
-            // Optional: quit the game or close terminal
             return "Already on local machine.";
         }
 
@@ -286,10 +282,6 @@ public class ExitCommand : ICommand
         return $"Connection to {oldIP} closed.";
     }
 }
-
-// ── Main-menu commands ────────────────────────────────────────────────────────
-// These are registered in CommandParser via the menu constructor and executed
-// from the interactive prompt in MainMenuController.
 
 public class BootSystemCommand : ICommand
 {

@@ -1,6 +1,6 @@
 using System;
 using System.Collections.Generic;
-using UnityEngine; // NEEDED FOR TRANSFORM
+using UnityEngine;
 
 public class NetworkNode
 {
@@ -8,7 +8,7 @@ public class NetworkNode
     public string DeviceName { get; }
     public bool IsLocked { get; set; }
     
-    public Transform PhysicalTransform { get; } // NEW
+    public Transform PhysicalTransform { get; }
 
     public List<NetworkNode> Connections { get; } = new List<NetworkNode>();
     public Action OnUnlock;

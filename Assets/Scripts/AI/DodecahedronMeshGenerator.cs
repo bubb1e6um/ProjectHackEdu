@@ -12,7 +12,6 @@ public class DodecahedronMeshGenerator : MonoBehaviour
         GetComponent<MeshFilter>().sharedMesh = Build(radius);
     }
 
-    // ── Public factory ────────────────────────────────────────────────
     public static Mesh Build(float radius = 0.58f)
     {
         float phi  = (1f + Mathf.Sqrt(5f)) / 2f;

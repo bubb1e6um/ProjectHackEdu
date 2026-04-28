@@ -4,18 +4,11 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// In-game pause menu prefab. Press Esc to open; press Esc again or click Shutdown to close.
-/// Opens  → Time.timeScale = 0 (game frozen).
-/// Closes → Time.timeScale = 1 (game resumed).
-///
-/// Does NOT open if something else has already frozen time (e.g. the terminal on Tab).
-/// Attach to an empty GameObject, then save as a prefab and drop into any game scene.
-/// Requires an EventSystem in the scene (the terminal/UI canvas usually provides one).
-/// </summary>
+// In-game pause menu. Press Esc to open; press Esc again or click Shutdown to close.
+// Does NOT open if something else has already frozen time (e.g. the terminal on Tab).
+// Attach to an empty GameObject and drop into any game scene.
 public class PauseMenuController : MonoBehaviour
 {
-    // ── Palette ───────────────────────────────────────────────────────────────
     static readonly Color CGreenBright  = new Color(0.00f, 1.00f, 0.25f, 1f);
     static readonly Color CGreenNormal  = new Color(0.00f, 0.80f, 0.15f, 1f);
     static readonly Color CGreenDim     = new Color(0.00f, 0.42f, 0.08f, 1f);
@@ -24,7 +17,7 @@ public class PauseMenuController : MonoBehaviour
     static readonly Color CHeaderBg     = new Color(0.00f, 0.18f, 0.04f, 1f);
     static readonly Color CGreenDimBtn  = new Color(0.00f, 0.10f, 0.02f, 0.70f);
 
-    // ── Phosphor colour schemes [scheme][0=bright 1=normal 2=dim 3=veryDim] ──
+    // Phosphor colour palettes — [scheme][level], levels: 0=bright 1=normal 2=dim 3=veryDim
     static readonly Color[][] Phosphors =
     {
         new[]{ new Color(0.00f,1.00f,0.25f,1f), new Color(0.00f,0.80f,0.15f,1f),
@@ -37,17 +30,14 @@ public class PauseMenuController : MonoBehaviour
                new Color(0.45f,0.04f,0.04f,1f), new Color(0.20f,0.02f,0.02f,1f) },
     };
 
-    // ── Runtime state ─────────────────────────────────────────────────────────
     Text   _statusText;
     bool   _blinkOn;
     bool   _isPaused;
     Font   _uiFont;
 
-    // Root panel that is toggled — kept separate so this MonoBehaviour's
-    // Update() keeps running even when the menu is hidden.
+    // Root panel is toggled on/off; kept separate so Update() keeps running when hidden
     GameObject _pauseRoot;
 
-    // ── Settings window ───────────────────────────────────────────────────────
     GameObject    _settingsOverlay;
     RectTransform _settingsPanel;
     int           _phosphorIdx = 0;
@@ -65,7 +55,6 @@ public class PauseMenuController : MonoBehaviour
     readonly List<Text> _pNormal = new List<Text>();
     readonly List<Text> _pDim    = new List<Text>();
 
-    // ─────────────────────────────────────────────────────────────────────────
     void Awake()
     {
         BuildUI();
@@ -73,12 +62,9 @@ public class PauseMenuController : MonoBehaviour
         StartCoroutine(BlinkCursor());
     }
 
-    // =========================================================================
-    //  Input
-    // =========================================================================
     void Update()
     {
-        // When the settings overlay is visible, only Esc passes through.
+        // Settings window absorbs all key input; only ESC passes through
         if (_settingsOverlay != null && _settingsOverlay.activeSelf)
         {
             if (Input.GetKeyDown(KeyCode.Escape)) CloseSettings();
@@ -94,15 +80,12 @@ public class PauseMenuController : MonoBehaviour
         }
     }
 
-    // =========================================================================
-    //  Open / Close
-    // =========================================================================
     void OpenPauseMenu()
     {
         _isPaused = true;
         _pauseRoot.SetActive(true);
         Time.timeScale = 0f;
-        SetStatus("// SYSTEM PAUSED \u2500 ALL PROCESSES SUSPENDED");
+        SetStatus("// SYSTEM PAUSED ─ ALL PROCESSES SUSPENDED");
     }
 
     void ClosePauseMenu()
@@ -112,9 +95,6 @@ public class PauseMenuController : MonoBehaviour
         Time.timeScale = 1f;
     }
 
-    // =========================================================================
-    //  Button callbacks
-    // =========================================================================
     void OnResume() => ClosePauseMenu();
 
     void OnMainMenu()
@@ -139,9 +119,6 @@ public class PauseMenuController : MonoBehaviour
 
     void CloseSettings() => StartCoroutine(CloseSettingsAnim());
 
-    // =========================================================================
-    //  Settings: apply
-    // =========================================================================
     void ApplyPhosphor()
     {
         var p = Phosphors[_phosphorIdx];
@@ -178,9 +155,7 @@ public class PauseMenuController : MonoBehaviour
         return Mathf.Max(0, res.Length - 1);
     }
 
-    // =========================================================================
-    //  Coroutines — all use UNSCALED time so they work when timeScale == 0
-    // =========================================================================
+    // All coroutines use unscaled time so they work when timeScale == 0
     IEnumerator OpenSettingsAnim()
     {
         _settingsOverlay.SetActive(true);
@@ -188,7 +163,7 @@ public class PauseMenuController : MonoBehaviour
         const float dur = 0.18f;
         for (float t = 0; t < dur; t += Time.unscaledDeltaTime)
         {
-            float ease = 1f - Mathf.Pow(1f - t / dur, 3f);
+            float ease = 1f - Mathf.Pow(1f - t / dur, 3f);   // ease-out cubic
             cg.alpha = ease;
             _settingsPanel.localScale = Vector3.Lerp(new Vector3(0.86f, 0.86f, 1f), Vector3.one, ease);
             yield return null;
@@ -204,7 +179,7 @@ public class PauseMenuController : MonoBehaviour
         for (float t = 0; t < dur; t += Time.unscaledDeltaTime)
         {
             float p = t / dur;
-            cg.alpha = 1f - p * p;
+            cg.alpha = 1f - p * p;   // ease-in quad
             _settingsPanel.localScale = Vector3.Lerp(Vector3.one, new Vector3(0.86f, 0.86f, 1f), p);
             yield return null;
         }
@@ -234,9 +209,6 @@ public class PauseMenuController : MonoBehaviour
         }
     }
 
-    // =========================================================================
-    //  UI construction
-    // =========================================================================
     void BuildUI()
     {
         // Canvas lives on this GameObject; it stays active so Update runs.
@@ -254,16 +226,13 @@ public class PauseMenuController : MonoBehaviour
         if (font == null) font = Resources.GetBuiltinResource<Font>("Arial.ttf");
         _uiFont = font;
 
-        // ── Root panel (toggled on/off) ──────────────────────────────────────
         var rootGo = new GameObject("PauseRoot");
         rootGo.transform.SetParent(transform, false);
         _pauseRoot = rootGo;
 
-        // Darkened screen overlay
         var overlay = MakePanel("Overlay", rootGo.transform, new Color(0f, 0f, 0f, 0.78f));
         Stretch(overlay.GetRT());
 
-        // ── Terminal window ──────────────────────────────────────────────────
         const float W = 720f, H = 440f;
         var win = MakePanel("TerminalWindow", rootGo.transform, CPanelBg);
         var winRT = win.GetRT();
@@ -272,7 +241,6 @@ public class PauseMenuController : MonoBehaviour
         win.Go.AddComponent<Outline>().effectColor    = CGreenNormal;
         win.Go.GetComponent<Outline>().effectDistance = new Vector2(2f, 2f);
 
-        // Header
         var hdr = MakePanel("Header", win.Tr, CHeaderBg);
         var hdrRT = hdr.GetRT();
         hdrRT.anchorMin = new Vector2(0, 1); hdrRT.anchorMax = new Vector2(1, 1);
@@ -280,53 +248,48 @@ public class PauseMenuController : MonoBehaviour
         hdrRT.offsetMin = new Vector2(0, -46); hdrRT.offsetMax = Vector2.zero;
 
         var titleT = MakeText("Title", hdr.Tr, font,
-            "[ HACKEDU OS v2.1.0 ]  \u2500\u2500  SESSION PAUSED  \u2500\u2500  [STANDBY]",
+            "[ HACKEDU OS v2.1.0 ]  ──  SESSION PAUSED  ──  [STANDBY]",
             14, CGreenBright, TextAnchor.MiddleCenter);
         titleT.Stretch();
         _pBright.Add(titleT.Comp);
 
-        // Sys-info line
         var sysT = MakeText("SysInfo", win.Tr, font,
-            "user@hackedu:~   \u2502   addr: 127.0.0.1   \u2502   state: PAUSED   \u2502   [ESC] to resume",
+            "user@hackedu:~   │   addr: 127.0.0.1   │   state: PAUSED   │   [ESC] to resume",
             11, CGreenDim, TextAnchor.MiddleLeft);
         AnchorTop(sysT.RT, 22, -84, -50);
         _pDim.Add(sysT.Comp);
 
         MakeHRule(win.Tr, -92, CGreenVeryDim);
 
-        // Hint line
         var hintT = MakeText("Hint", win.Tr, font,
-            "  press: [ESC] resume  \u2502  mainmenu  \u2502  settings  \u2502  shutdown",
+            "  press: [ESC] resume  │  mainmenu  │  settings  │  shutdown",
             11, CGreenVeryDim, TextAnchor.MiddleLeft);
         AnchorTop(hintT.RT, 22, -118, -94);
 
         MakeHRule(win.Tr, -126, CGreenVeryDim);
 
-        // ── Buttons ──────────────────────────────────────────────────────────
-        //  centreY values measured from window centre (positive = up)
         float[] btnY = { 72f, 14f, -44f, -102f };
 
         MakeButton(win.Tr, font,
-            "  \u25B6  [   RESUME   ]     \u2500  CONTINUE CURRENT SESSION",
+            "  ▶  [   RESUME   ]     ─  CONTINUE CURRENT SESSION",
             btnY[0], OnResume);
 
         MakeButton(win.Tr, font,
-            "  \u25B6  [ MAIN  MENU ]     \u2500  EXIT TO MAIN TERMINAL",
+            "  ▶  [ MAIN  MENU ]     ─  EXIT TO MAIN TERMINAL",
             btnY[1], OnMainMenu);
 
         MakeButton(win.Tr, font,
-            "  \u25B6  [  SETTINGS  ]     \u2500  CONFIGURE SYSTEM PARAMETERS",
+            "  ▶  [  SETTINGS  ]     ─  CONFIGURE SYSTEM PARAMETERS",
             btnY[2], OnSettings);
 
         MakeButton(win.Tr, font,
-            "  \u25B6  [  SHUTDOWN  ]     \u2500  TERMINATE ALL PROCESSES",
+            "  ▶  [  SHUTDOWN  ]     ─  TERMINATE ALL PROCESSES",
             btnY[3], OnShutdown);
 
         MakeHRule(win.Tr, -156, CGreenVeryDim);
 
-        // Status bar
         var statusT = MakeText("Status", win.Tr, font,
-            "// SYSTEM PAUSED \u2500 ALL PROCESSES SUSPENDED",
+            "// SYSTEM PAUSED ─ ALL PROCESSES SUSPENDED",
             11, CGreenDim, TextAnchor.MiddleLeft);
         statusT.RT.anchorMin = new Vector2(0, 0); statusT.RT.anchorMax = new Vector2(1, 0);
         statusT.RT.pivot     = new Vector2(0.5f, 0f);
@@ -337,9 +300,6 @@ public class PauseMenuController : MonoBehaviour
         BuildSettingsWindow(font);
     }
 
-    // =========================================================================
-    //  Settings window construction (identical layout to MainMenuController)
-    // =========================================================================
     void BuildSettingsWindow(Font font)
     {
         const float W     = 560f;
@@ -375,7 +335,6 @@ public class PauseMenuController : MonoBehaviour
         MakeText("STitle", hdr.Tr, font,
             "[ SYSTEM CONFIGURATION ]", 13, CGreenBright, TextAnchor.MiddleCenter).Stretch();
 
-        // Close (✕) button
         var xGo  = new GameObject("CloseBtn");
         xGo.transform.SetParent(hdr.Tr, false);
         var xImg = xGo.AddComponent<Image>();
@@ -396,7 +355,7 @@ public class PauseMenuController : MonoBehaviour
         var xLbl = new GameObject("X");
         xLbl.transform.SetParent(xGo.transform, false);
         var xTxt = xLbl.AddComponent<Text>();
-        xTxt.font = font; xTxt.fontSize = 13; xTxt.text = "\u2715";
+        xTxt.font = font; xTxt.fontSize = 13; xTxt.text = "✕";
         xTxt.color = CGreenNormal; xTxt.alignment = TextAnchor.MiddleCenter; xTxt.raycastTarget = false;
         var xLblRT = xLbl.GetComponent<RectTransform>();
         xLblRT.anchorMin = Vector2.zero; xLblRT.anchorMax = Vector2.one;
@@ -438,15 +397,13 @@ public class PauseMenuController : MonoBehaviour
 
     void SetStatus(string msg) { if (_statusText) _statusText.text = msg; }
 
-    // ── Settings row helpers ──────────────────────────────────────────────────
-
     float SWinSection(Transform parent, Font font, string title,
         float y, float winW, float pad, float secH)
     {
         MakeHRule(parent, -y, CGreenVeryDim);
         y += 4f;
         var t = MakeText($"Sec_{title}", parent, font,
-            $"\u2500\u2500 {title} ", 10, CGreenDim, TextAnchor.MiddleLeft);
+            $"── {title} ", 10, CGreenDim, TextAnchor.MiddleLeft);
         t.RT.anchorMin = t.RT.anchorMax = new Vector2(0f, 1f);
         t.RT.pivot = new Vector2(0f, 1f);
         t.RT.sizeDelta        = new Vector2(winW - pad * 2f, secH);
@@ -543,7 +500,7 @@ public class PauseMenuController : MonoBehaviour
         minusRT.anchoredPosition = new Vector2(ctrlX, -(y + 2f));
         var mL = new GameObject("T"); mL.transform.SetParent(minusGo.transform, false);
         var mTxt = mL.AddComponent<Text>();
-        mTxt.font = font; mTxt.fontSize = 15; mTxt.text = "\u2212";
+        mTxt.font = font; mTxt.fontSize = 15; mTxt.text = "−";
         mTxt.color = CGreenNormal; mTxt.alignment = TextAnchor.MiddleCenter; mTxt.raycastTarget = false;
         Stretch(mL.GetComponent<RectTransform>());
 
@@ -604,9 +561,6 @@ public class PauseMenuController : MonoBehaviour
         btn.colors = c;
     }
 
-    // =========================================================================
-    //  UI helpers
-    // =========================================================================
     struct PanelRef
     {
         public GameObject    Go;

@@ -4,14 +4,10 @@ using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
 
-/// <summary>
-/// Terminal-style main menu. Attach to an empty GameObject in the MainMenu scene.
-/// Builds the full UI programmatically on Awake, captures keyboard input for
-/// the interactive terminal prompt, and hosts the settings window.
-/// </summary>
+// Terminal-style main menu. Attach to an empty GameObject in the MainMenu scene.
+// Builds the full UI programmatically on Awake — no prefab or hierarchy setup required.
 public class MainMenuController : MonoBehaviour
 {
-    // ── Palette ──────────────────────────────────────────────────────────────
     static readonly Color CGreenBright  = new Color(0.00f, 1.00f, 0.25f, 1f);
     static readonly Color CGreenNormal  = new Color(0.00f, 0.80f, 0.15f, 1f);
     static readonly Color CGreenDim     = new Color(0.00f, 0.42f, 0.08f, 1f);
@@ -20,8 +16,7 @@ public class MainMenuController : MonoBehaviour
     static readonly Color CHeaderBg     = new Color(0.00f, 0.18f, 0.04f, 1f);
     static readonly Color CGreenDimBtn  = new Color(0.00f, 0.10f, 0.02f, 0.70f);
 
-    // ── Phosphor palettes ─────────────────────────────────────────────────────
-    // [scheme][level]  levels: 0=bright  1=normal  2=dim  3=veryDim
+    // Phosphor colour palettes — [scheme][level], levels: 0=bright 1=normal 2=dim 3=veryDim
     static readonly Color[][] Phosphors =
     {
         // 0 — Green (default)
@@ -38,7 +33,6 @@ public class MainMenuController : MonoBehaviour
                new Color(0.45f,0.04f,0.04f,1f), new Color(0.20f,0.02f,0.02f,1f) },
     };
 
-    // ── Runtime state ─────────────────────────────────────────────────────────
     Text              _statusText;
     Text              _promptText;
     bool              _locked;
@@ -53,13 +47,11 @@ public class MainMenuController : MonoBehaviour
 
     const string Prefix = "root@hackedu:~$ ";
 
-    // ── Settings window ───────────────────────────────────────────────────────
-    GameObject        _settingsOverlay;  // full-screen dimmer + CanvasGroup
-    RectTransform     _settingsPanel;    // the window rect (scaled in anim)
+    GameObject        _settingsOverlay;
+    RectTransform     _settingsPanel;
     int               _phosphorIdx = 0;
     int               _resIdx;
 
-    // Audio settings
     float             _masterVolume = 1.0f;
     float             _sfxVolume    = 1.0f;
     float             _musicVolume  = 1.0f;
@@ -68,12 +60,11 @@ public class MainMenuController : MonoBehaviour
     [Header("Audio — wire when ready")]
     public AudioSource MusicSource;
 
-    // Texts that get recolored when the phosphor scheme changes
+    // Texts that get recoloured when the phosphor scheme changes
     readonly List<Text> _pBright = new List<Text>();
     readonly List<Text> _pNormal = new List<Text>();
     readonly List<Text> _pDim    = new List<Text>();
 
-    // ─────────────────────────────────────────────────────────────────────────
     void Awake()
     {
         BuildUI();
@@ -81,9 +72,6 @@ public class MainMenuController : MonoBehaviour
         StartCoroutine(BlinkCursor());
     }
 
-    // =========================================================================
-    //  Keyboard input
-    // =========================================================================
     void Update()
     {
         if (_locked) return;
@@ -148,12 +136,9 @@ public class MainMenuController : MonoBehaviour
     void RefreshPrompt()
     {
         if (_promptText == null) return;
-        _promptText.text = Prefix + _inputBuffer + (_blinkOn ? "\u2588" : " ");
+        _promptText.text = Prefix + _inputBuffer + (_blinkOn ? "█" : " ");
     }
 
-    // =========================================================================
-    //  Button / command callbacks
-    // =========================================================================
     void OnBootSystem()
     {
         if (_locked) return;
@@ -181,9 +166,6 @@ public class MainMenuController : MonoBehaviour
         StartCoroutine(CloseSettingsAnim());
     }
 
-    // =========================================================================
-    //  Settings: apply methods
-    // =========================================================================
     void ApplyPhosphor()
     {
         var p = Phosphors[_phosphorIdx];
@@ -220,9 +202,6 @@ public class MainMenuController : MonoBehaviour
         return Mathf.Max(0, res.Length - 1);
     }
 
-    // =========================================================================
-    //  Coroutines
-    // =========================================================================
     IEnumerator OpenSettingsAnim()
     {
         _settingsOverlay.SetActive(true);
@@ -285,7 +264,7 @@ public class MainMenuController : MonoBehaviour
             "// MOUNTING VIRTUAL FILE SYSTEM...",
             "// INITIALIZING NETWORK SUBSYSTEM...",
             "// STARTING GAME ENGINE...",
-            "// BOOT COMPLETE \u2500 LAUNCHING..."
+            "// BOOT COMPLETE ─ LAUNCHING..."
         };
         foreach (var line in lines)
         {
@@ -322,9 +301,6 @@ public class MainMenuController : MonoBehaviour
         if (_statusText) _statusText.text = msg;
     }
 
-    // =========================================================================
-    //  Main menu UI construction
-    // =========================================================================
     void BuildUI()
     {
         var cv = gameObject.AddComponent<Canvas>();
@@ -352,7 +328,6 @@ public class MainMenuController : MonoBehaviour
         win.Go.AddComponent<Outline>().effectColor    = CGreenNormal;
         win.Go.GetComponent<Outline>().effectDistance = new Vector2(2f, 2f);
 
-        // Header
         var hdr = MakePanel("Header", win.Tr, CHeaderBg);
         var hdrRT = hdr.GetRT();
         hdrRT.anchorMin = new Vector2(0, 1); hdrRT.anchorMax = new Vector2(1, 1);
@@ -360,22 +335,20 @@ public class MainMenuController : MonoBehaviour
         hdrRT.offsetMin = new Vector2(0, -46); hdrRT.offsetMax = Vector2.zero;
 
         var titleT = MakeText("Title", hdr.Tr, font,
-            "[ HACKEDU OS v2.1.0 ]  \u2500\u2500  SECURE TERMINAL INTERFACE  \u2500\u2500  [ONLINE]",
+            "[ HACKEDU OS v2.1.0 ]  ──  SECURE TERMINAL INTERFACE  ──  [ONLINE]",
             14, CGreenBright, TextAnchor.MiddleCenter);
         titleT.Stretch();
         _pBright.Add(titleT.Comp);
 
-        // Sys-info line
         var sysT = MakeText("SysInfo", win.Tr, font,
-            "user@hackedu:~   \u2502   addr: 192.168.0.1   \u2502   uptime: 00:00:00   \u2502   mem: OK",
+            "user@hackedu:~   │   addr: 192.168.0.1   │   uptime: 00:00:00   │   mem: OK",
             11, CGreenDim, TextAnchor.MiddleLeft);
         AnchorTop(sysT.RT, 22, -84, -50);
         _pDim.Add(sysT.Comp);
 
         MakeHRule(win.Tr, -92, CGreenVeryDim);
 
-        // Prompt
-        var promptT = MakeText("Prompt", win.Tr, font, Prefix + "\u2588",
+        var promptT = MakeText("Prompt", win.Tr, font, Prefix + "█",
             14, CGreenNormal, TextAnchor.MiddleLeft);
         AnchorTop(promptT.RT, 28, -138, -98);
         _promptText = promptT.Comp;
@@ -383,7 +356,6 @@ public class MainMenuController : MonoBehaviour
 
         MakeHRule(win.Tr, -146, CGreenVeryDim);
 
-        // Hint
         var hintT = MakeText("Hint", win.Tr, font,
             "  type: bootsystem | shutdown | settings | help",
             11, CGreenVeryDim, TextAnchor.MiddleLeft);
@@ -391,23 +363,21 @@ public class MainMenuController : MonoBehaviour
 
         MakeHRule(win.Tr, -178, CGreenVeryDim);
 
-        // Buttons
         float[] btnY = { 60f, -4f, -68f };
         MakeButton(win.Tr, font,
-            "  \u25B6  [ BOOT SYSTEM ]     \u2500  INITIALIZE KERNEL AND START",
+            "  ▶  [ BOOT SYSTEM ]     ─  INITIALIZE KERNEL AND START",
             btnY[0], OnBootSystem);
         MakeButton(win.Tr, font,
-            "  \u25B6  [  SHUTDOWN   ]     \u2500  TERMINATE ALL PROCESSES",
+            "  ▶  [  SHUTDOWN   ]     ─  TERMINATE ALL PROCESSES",
             btnY[1], OnShutdown);
         MakeButton(win.Tr, font,
-            "  \u25B6  [  SETTINGS   ]     \u2500  CONFIGURE SYSTEM PARAMETERS",
+            "  ▶  [  SETTINGS   ]     ─  CONFIGURE SYSTEM PARAMETERS",
             btnY[2], OnSettings);
 
         MakeHRule(win.Tr, -158, CGreenVeryDim);
 
-        // Status bar
         var statusT = MakeText("Status", win.Tr, font,
-            "// SYSTEM NOMINAL \u2500 ALL DIAGNOSTICS PASSED \u2500 AWAITING COMMAND",
+            "// SYSTEM NOMINAL ─ ALL DIAGNOSTICS PASSED ─ AWAITING COMMAND",
             11, CGreenDim, TextAnchor.MiddleLeft);
         statusT.RT.anchorMin = new Vector2(0, 0); statusT.RT.anchorMax = new Vector2(1, 0);
         statusT.RT.pivot     = new Vector2(0.5f, 0f);
@@ -418,9 +388,6 @@ public class MainMenuController : MonoBehaviour
         BuildSettingsWindow(font);
     }
 
-    // =========================================================================
-    //  Settings window construction
-    // =========================================================================
     void BuildSettingsWindow(Font font)
     {
         const float W     = 560f;
@@ -431,7 +398,6 @@ public class MainMenuController : MonoBehaviour
         const float SEC_H = 26f;
         const float SPLIT = 220f;   // px from window left where the control column starts
 
-        // Full-screen dimmer + CanvasGroup (drives the fade)
         var dimGo = new GameObject("SettingsOverlay");
         dimGo.transform.SetParent(transform, false);
         var dimImg = dimGo.AddComponent<Image>();
@@ -441,7 +407,6 @@ public class MainMenuController : MonoBehaviour
         var cg = dimGo.AddComponent<CanvasGroup>();
         cg.alpha = 0f;
 
-        // Window panel
         var win = MakePanel("SettingsWindow", dimGo.transform, CPanelBg);
         win.Go.GetComponent<Image>().raycastTarget = true;
         var winRT = win.GetRT();
@@ -450,7 +415,6 @@ public class MainMenuController : MonoBehaviour
         win.Go.AddComponent<Outline>().effectColor    = CGreenNormal;
         win.Go.GetComponent<Outline>().effectDistance = new Vector2(2f, 2f);
 
-        // Header bar
         var hdr = MakePanel("SHdr", win.Tr, CHeaderBg);
         var hdrRT = hdr.GetRT();
         hdrRT.anchorMin = new Vector2(0, 1); hdrRT.anchorMax = new Vector2(1, 1);
@@ -459,7 +423,6 @@ public class MainMenuController : MonoBehaviour
         MakeText("STitle", hdr.Tr, font,
             "[ SYSTEM CONFIGURATION ]", 13, CGreenBright, TextAnchor.MiddleCenter).Stretch();
 
-        // Close (✕) button — dark green, not red
         var xGo  = new GameObject("CloseBtn");
         xGo.transform.SetParent(hdr.Tr, false);
         var xImg = xGo.AddComponent<Image>();
@@ -480,14 +443,13 @@ public class MainMenuController : MonoBehaviour
         var xLblGo = new GameObject("X");
         xLblGo.transform.SetParent(xGo.transform, false);
         var xTxt = xLblGo.AddComponent<Text>();
-        xTxt.font = font; xTxt.fontSize = 13; xTxt.text = "\u2715";
+        xTxt.font = font; xTxt.fontSize = 13; xTxt.text = "✕";
         xTxt.color = CGreenNormal;
         xTxt.alignment = TextAnchor.MiddleCenter; xTxt.raycastTarget = false;
         var xLblRT = xLblGo.GetComponent<RectTransform>();
         xLblRT.anchorMin = Vector2.zero; xLblRT.anchorMax = Vector2.one;
         xLblRT.offsetMin = xLblRT.offsetMax = Vector2.zero;
 
-        // Content rows
         // y = distance from window top (positive, grows downward)
         float y = HDR_H + 8f;
 
@@ -504,7 +466,6 @@ public class MainMenuController : MonoBehaviour
 
         y += 10f;
 
-        // ── AUDIO ─────────────────────────────────────────────────────────────
         y = SWinSection(win.Tr, font, "AUDIO", y, W, PAD, SEC_H);
 
         y = SWinStep(win.Tr, font, "Master Volume", y,
@@ -524,15 +485,13 @@ public class MainMenuController : MonoBehaviour
         dimGo.SetActive(false);
     }
 
-    // ── Settings row helpers ──────────────────────────────────────────────────
-
     float SWinSection(Transform parent, Font font, string title,
         float y, float winW, float pad, float secH)
     {
         MakeHRule(parent, -y, CGreenVeryDim);
         y += 4f;
         var t = MakeText($"Sec_{title}", parent, font,
-            $"\u2500\u2500 {title} ", 10, CGreenDim, TextAnchor.MiddleLeft);
+            $"── {title} ", 10, CGreenDim, TextAnchor.MiddleLeft);
         t.RT.anchorMin = t.RT.anchorMax = new Vector2(0f, 1f);
         t.RT.pivot = new Vector2(0f, 1f);
         t.RT.sizeDelta        = new Vector2(winW - pad * 2f, secH);
@@ -545,7 +504,6 @@ public class MainMenuController : MonoBehaviour
         float rowH, float pad, float split, float winW,
         System.Action<int> onChange)
     {
-        // Label
         var lbl = MakeText($"L_{label}", parent, font, label, 12, CGreenDim, TextAnchor.MiddleLeft);
         lbl.RT.anchorMin = lbl.RT.anchorMax = new Vector2(0f, 1f);
         lbl.RT.pivot = new Vector2(0f, 1f);
@@ -557,7 +515,6 @@ public class MainMenuController : MonoBehaviour
         const float BTN_W = 26f;
         int idx = Mathf.Clamp(initial, 0, options.Length - 1);
 
-        // ◀ button
         var prevGo  = new GameObject($"Prev_{label}");
         prevGo.transform.SetParent(parent, false);
         var prevImg = prevGo.AddComponent<Image>();
@@ -573,7 +530,6 @@ public class MainMenuController : MonoBehaviour
         prevTxt.color = CGreenNormal; prevTxt.alignment = TextAnchor.MiddleCenter; prevTxt.raycastTarget = false;
         Stretch(prevLblGo.GetComponent<RectTransform>());
 
-        // Value display
         var valGo  = new GameObject($"Val_{label}");
         valGo.transform.SetParent(parent, false);
         var valImg = valGo.AddComponent<Image>();
@@ -589,7 +545,6 @@ public class MainMenuController : MonoBehaviour
         valTxt.color = CGreenBright; valTxt.alignment = TextAnchor.MiddleCenter; valTxt.raycastTarget = false;
         Stretch(valLblGo.GetComponent<RectTransform>());
 
-        // ▶ button
         var nextGo  = new GameObject($"Next_{label}");
         nextGo.transform.SetParent(parent, false);
         var nextImg = nextGo.AddComponent<Image>();
@@ -605,7 +560,6 @@ public class MainMenuController : MonoBehaviour
         nextTxt.color = CGreenNormal; nextTxt.alignment = TextAnchor.MiddleCenter; nextTxt.raycastTarget = false;
         Stretch(nextLblGo.GetComponent<RectTransform>());
 
-        // Wire
         var prevBtn = prevGo.AddComponent<Button>();
         prevBtn.targetGraphic = prevImg;
         ApplyCycleColors(prevBtn);
@@ -629,7 +583,7 @@ public class MainMenuController : MonoBehaviour
         return y + rowH + 2f;
     }
 
-    /// <summary>− value + row with percent display. Step is clamped and rounded.</summary>
+    // Step control for float values — displays percentage, snaps to step increments
     float SWinStep(Transform parent, Font font, string label, float y,
         float initial, float minVal, float maxVal, float step,
         float rowH, float pad, float split, float winW,
@@ -646,7 +600,6 @@ public class MainMenuController : MonoBehaviour
         const float BTN_W = 28f;
         float cur = Mathf.Clamp(initial, minVal, maxVal);
 
-        // − button
         var minusGo  = new GameObject($"Minus_{label}");
         minusGo.transform.SetParent(parent, false);
         var minusImg = minusGo.AddComponent<Image>();
@@ -658,11 +611,10 @@ public class MainMenuController : MonoBehaviour
         minusRT.anchoredPosition = new Vector2(ctrlX, -(y + 2f));
         var mLbl = new GameObject("T"); mLbl.transform.SetParent(minusGo.transform, false);
         var mTxt = mLbl.AddComponent<Text>();
-        mTxt.font = font; mTxt.fontSize = 15; mTxt.text = "\u2212";
+        mTxt.font = font; mTxt.fontSize = 15; mTxt.text = "−";
         mTxt.color = CGreenNormal; mTxt.alignment = TextAnchor.MiddleCenter; mTxt.raycastTarget = false;
         Stretch(mLbl.GetComponent<RectTransform>());
 
-        // Value display
         var valGo  = new GameObject($"Val_{label}");
         valGo.transform.SetParent(parent, false);
         var valImg = valGo.AddComponent<Image>();
@@ -678,7 +630,6 @@ public class MainMenuController : MonoBehaviour
         vTxt.color = CGreenBright; vTxt.alignment = TextAnchor.MiddleCenter; vTxt.raycastTarget = false;
         Stretch(vLbl.GetComponent<RectTransform>());
 
-        // + button
         var plusGo  = new GameObject($"Plus_{label}");
         plusGo.transform.SetParent(parent, false);
         var plusImg = plusGo.AddComponent<Image>();
@@ -694,7 +645,6 @@ public class MainMenuController : MonoBehaviour
         pTxt.color = CGreenNormal; pTxt.alignment = TextAnchor.MiddleCenter; pTxt.raycastTarget = false;
         Stretch(pLbl.GetComponent<RectTransform>());
 
-        // Wire
         var minusBtn = minusGo.AddComponent<Button>();
         minusBtn.targetGraphic = minusImg;
         ApplyCycleColors(minusBtn);
@@ -730,9 +680,6 @@ public class MainMenuController : MonoBehaviour
         btn.colors = c;
     }
 
-    // =========================================================================
-    //  UI helper structs / methods
-    // =========================================================================
     struct PanelRef
     {
         public GameObject    Go;

@@ -26,7 +26,6 @@ void Start()
     {
         ChangeState(new PatrolState());
 
-        // Network Registration
         var terminal = Object.FindAnyObjectByType<TerminalController>();
         if (terminal != null && terminal.GlobalNetwork != null)
         {
@@ -45,8 +44,7 @@ void Start()
 
     private void OnHacked()
     {
-        Debug.Log("Enemy hacked! Shutting down...");
-        ChangeState(null); 
+        ChangeState(null);
         this.enabled = false; 
         
         if (extractionCube != null)
@@ -55,8 +53,7 @@ void Start()
             extractionCube.SetActive(true);
         }
 
-        // HIDE THE ENEMY
-        gameObject.SetActive(false); 
+        gameObject.SetActive(false);
     }
 
     void Update()
